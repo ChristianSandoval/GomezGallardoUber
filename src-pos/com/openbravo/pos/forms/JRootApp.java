@@ -22,12 +22,23 @@ import com.openbravo.data.gui.JMessageDialog;
 import com.openbravo.data.loader.BatchSentence;
 import com.openbravo.data.loader.BatchSentenceResource;
 import com.openbravo.data.loader.Session;
+import com.openbravo.format.Formats;
+import com.openbravo.pos.panels.GMailAuthenticator;
+import com.openbravo.pos.panels.JPanelCloseMoney;
 import com.openbravo.pos.scale.DeviceScale;
 import com.openbravo.pos.scanpal2.DeviceScanner;
 import com.openbravo.pos.scanpal2.DeviceScannerFactory;
+import java.io.File;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 /**
  *
@@ -570,6 +581,7 @@ public class JRootApp extends JPanel implements AppView {
         m_jClose = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         m_txtKeys = new javax.swing.JTextField();
+        m_jClose1 = new javax.swing.JButton();
         m_jPanelDown = new javax.swing.JPanel();
         panelTask = new javax.swing.JPanel();
         m_jHost = new javax.swing.JLabel();
@@ -647,6 +659,20 @@ public class JRootApp extends JPanel implements AppView {
         jPanel1.add(m_txtKeys);
         m_txtKeys.setBounds(0, 0, 0, 0);
 
+        m_jClose1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/mime.png"))); // NOI18N
+        m_jClose1.setText("Correo");
+        m_jClose1.setFocusPainted(false);
+        m_jClose1.setFocusable(false);
+        m_jClose1.setPreferredSize(new java.awt.Dimension(115, 35));
+        m_jClose1.setRequestFocusEnabled(false);
+        m_jClose1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jClose1ActionPerformed(evt);
+            }
+        });
+        jPanel1.add(m_jClose1);
+        m_jClose1.setBounds(0, 50, 115, 35);
+
         jPanel2.add(jPanel1, java.awt.BorderLayout.CENTER);
 
         m_jLogonName.add(jPanel2, java.awt.BorderLayout.LINE_END);
@@ -687,6 +713,41 @@ public class JRootApp extends JPanel implements AppView {
 
     }//GEN-LAST:event_m_txtKeysKeyTyped
 
+    private void m_jClose1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jClose1ActionPerformed
+        AppConfig config = new AppConfig(new File(System.getProperty("user.home") + File.separator + "openbravopos.properties"));
+                    config.load();
+                    
+                    Properties props = new Properties();
+                    props.put("mail.smtp.auth", "true");
+                    props.put("mail.smtp.starttls.enable", "true");
+                    props.put("mail.smtp.host", "smtp.gmail.com");
+                    props.put("mail.smtp.user", config.getProperty("correoEmisor"));
+                    props.put("mail.smtp.password", config.getProperty("claveCorreoEmisor"));
+                    props.put("mail.smtp.port", "587");
+
+                    javax.mail.Session session = javax.mail.Session.getInstance(props, new GMailAuthenticator(config.getProperty("correoEmisor"), config.getProperty("claveCorreoEmisor")));
+                    try {
+                        Message message = new MimeMessage(session);
+                        message.setFrom(new InternetAddress(config.getProperty("correoEmisor")));
+                        message.setRecipients(Message.RecipientType.TO,
+                            InternetAddress.parse(config.getProperty("correoPruebas")));
+                        message.setSubject("Prueba correo: "+config.getProperty("machine.hostname"));
+
+                        String body = "<html><body>Prueba de correo</body></html>";
+                        message.setContent(body, "text/html");
+                        Transport transport = session.getTransport("smtp");
+                        transport.connect("smtp.gmail.com", 587, config.getProperty("correoEmisor"), config.getProperty("claveCorreoEmisor"));
+                        message.saveChanges();
+                        transport.sendMessage(message, message.getAllRecipients());
+                        transport.close();
+                        JOptionPane.showMessageDialog(this, "Envio de correo exitoso");
+                    } catch (MessagingException ex) {
+                        JOptionPane.showMessageDialog(this, "No se pudo enviar el correo, favor de contactar a soporte.");
+                        Logger.getLogger(JPanelCloseMoney.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    
+    }//GEN-LAST:event_m_jClose1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
@@ -699,6 +760,7 @@ public class JRootApp extends JPanel implements AppView {
     private javax.swing.JPanel jPanel8;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton m_jClose;
+    private javax.swing.JButton m_jClose1;
     private javax.swing.JLabel m_jHost;
     private javax.swing.JLabel m_jLblTitle;
     private javax.swing.JPanel m_jLogonName;
